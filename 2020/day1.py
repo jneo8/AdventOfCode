@@ -1,7 +1,8 @@
-"""AdventOfCode 2020 Day1"""
+"""AdventOfCode 2020 Day1."""
 
 
 def find_sum(target=2020, numbers=set()):
+    """Find is there two entities that sum to target."""
     for n in numbers:
         second = target - n
         if second in numbers:
@@ -10,10 +11,12 @@ def find_sum(target=2020, numbers=set()):
 
 
 def part1(target=2020, numbers=[]):
+    """Part 1."""
     return find_sum(target=target, numbers=set(numbers))
 
 
 def part2(target=2020, numbers=[]):
+    """Part 2."""
     numbers = set(numbers)
     while numbers:
         selected = numbers.pop()
@@ -25,7 +28,8 @@ def part2(target=2020, numbers=[]):
 
 
 def get_input():
-    with open('input/day1.txt') as f:
+    """Get input txt."""
+    with open("input/day1.txt") as f:
         numbers = [int(line) for line in f.read().splitlines()]
     return numbers
 
