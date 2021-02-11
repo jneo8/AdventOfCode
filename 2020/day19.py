@@ -1,20 +1,7 @@
-"""AdventOfCode Day19."""
-import re
-import copy
+"""AdventOfCode Day19 with CYK algorithm."""
 
-test_input_1 = """\
-0: 4 1 5
-1: 2 3 | 3 2
-2: 4 4 | 5 5
-3: 4 5 | 5 4
-4: "a"
-5: "b"
-
-ababbb
-bababa
-abbbab
-aaabbb
-aaaabbb\
+"""
+https://en.wikipedia.org/wiki/CYK_algorithm
 """
 
 
@@ -24,134 +11,73 @@ def get_input():
         return f.read()
 
 
-def convertToInt(input):
-    numbers = []
-    for stringNumber in input:
-        numbers.append(int(stringNumber))
-    return numbers
+L = list([l.strip() for l in get_input().split("\n")])
+R = {}
+C = {}
 
 
-def getRules(puzzleInput):
-    rules = {}
-    missing = {}
-    splitInput = puzzleInput.split("\n")
-    newInput = copy.deepcopy(splitInput)
-    for rule in splitInput:
-        match = re.match('([0-9]+): "(.+)"', rule)
-        if match:
-            rules[int(match.groups()[0])] = [match.groups()[1]]
-            newInput.remove(rule)
-        else:
-            match = re.match("([0-9]+): (.+)", rule)
-            missing[int(match.groups()[0])] = match.groups()[1]
+def match_list(line, st, ed, rules):
+    if st == ed and not rules:
+        return True
+    if st == ed:
+        return False
+    if not rules:
+        return False
 
-    ls = copy.deepcopy(missing)
-    for key in ls.keys():
-        getRule(key, rules, missing)
-    return rules
-
-
-def getRule(rule, rules, missing):
-    if rule in rules.keys():
-        return rules[rule]
-
-    match = re.fullmatch("(([ ]?[0-9]+)+)", missing[rule])
-    if match:
-        subrules = convertToInt(match.groups()[0].split(" "))
-        result = getResult(subrules, rules, missing)
-        rules[rule] = result
-    else:
-        match = re.fullmatch("(([ ]?[0-9]+)+) \| (([ ]?[0-9]+)+)", missing[rule])
-        if match:
-            alternatives = []
-            alternatives.append(match.groups()[0])
-            alternatives.append(match.groups()[2])
-            completeResult = []
-            for alternative in alternatives:
-                subrules = convertToInt(alternative.split(" "))
-                result = getResult(subrules, rules, missing)
-                completeResult += result
-            rules[rule] = completeResult
-
-    del missing[rule]
-    return rules[rule]
-
-
-def getResult(subrules, rules, missing):
-    result = []
-    for subrule in subrules:
-        alternatives = getRule(subrule, rules, missing)
-        if not result:
-            result = copy.deepcopy(alternatives)
-        else:
-            tmp = []
-            for partResult in result:
-                for alternative in alternatives:
-                    tmp.append(partResult + alternative)
-            result = tmp
-    return result
-
-
-def preprocess(s: str):
-    """Preprocess."""
-    m = {}
-    messages = []
-    for line in s.strip().split("\n"):
-        if line == "":
+    for i in range(st + 1, ed + 1):
+        if i == ed and len(rules) > 1:  # have to leave something for the other rules
             continue
+        if match(line, st, i, rules[0]) and match_list(line, i, ed, rules[1:]):
+            return True
+
+    return False
+
+
+DP = {}
+
+
+def match(line, st, ed, rule):
+    key = (st, ed, rule)
+    if key in DP:
+        return DP[key]
+
+    ret = False
+    if rule in C:
+        ret = line[st:ed] == C[rule]
+    else:
+        for option in R[rule]:
+            if match_list(line, st, ed, option):
+                ret = True
+                DP[key] = True
+                return True
+
+    DP[key] = ret
+    return ret
+
+
+def solve(p2):
+    ans = 0
+    for line in L:
         if ":" in line:
-            v = line.split(":")
-            m[v[0]] = v[1].strip().replace('"', "")
-        else:
-            messages.append(line.strip())
-    return m, messages
+            words = line.split()
+            name = words[0][:-1]
+            if name == "8" and p2:
+                rest = "42 | 42 8"
+            elif name == "11" and p2:
+                rest = "42 31 | 42 11 31"
+            else:
+                rest = " ".join(words[1:])
+            if '"' in rest:
+                C[name] = rest[1:-1]
+            else:
+                options = rest.split(" | ")
+                R[name] = [x.split(" ") for x in options]
+        elif line:
+            DP.clear()
+            if match(line, 0, len(line), "0"):
+                ans += 1
+    return ans
 
 
-def part1(input_str: str):
-    """Part1."""
-    s = input_str.split("\n\n")
-    rules = getRules(s[0])
-    messages = s[1].split("\n")
-
-    cnt = 0
-    for msg in messages:
-        if msg in rules[0]:
-            cnt += 1
-    return cnt
-
-
-def part2(input_str: str):
-    """Part2."""
-    s = input_str.split("\n\n")
-    rules = getRules(s[0])
-    messages = s[1].split("\n")
-
-    blobSize = len(rules[42][0])
-    count = 0
-    for message in messages:
-        if message in rules[0]:
-            count += 1
-        else:
-            count42 = 0
-            count31 = 0
-            successful = True
-            for position in range(0, len(message) - blobSize + 1, blobSize):
-                messageSlice = message[position : (position + blobSize)]  # noqa
-                if messageSlice in rules[42]:
-                    count42 += 1
-                    if count31:
-                        successful = False
-                        break
-                elif messageSlice in rules[31]:
-                    count31 += 1
-            if successful and count31 and count42 - count31 > 0:
-                count += 1
-
-    return count
-
-
-if __name__ == "__main__":
-    print("Day 19")
-    assert part1(test_input_1) == 2
-    print(f"Part1: {part1(get_input())}")
-    print(f"Part2: {part2(get_input())}")
+print(solve(False))
+print(solve(True))
