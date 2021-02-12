@@ -6,6 +6,7 @@ authors = ["jneo8 <jneo8lin@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
+z3-solver = "^4.8.10"
 
 [tool.poetry.dev-dependencies]
 
